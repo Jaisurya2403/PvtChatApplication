@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard · Ephemeral</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="admin-page">
+    <!-- Sidebar Nav -->
+    <nav class="admin-nav">
+      <div class="admin-nav-brand">
+        <div class="brand" style="margin-bottom:6px;">
+          <div class="brand-icon">🔒</div>
+          <span class="brand-name">Ephemeral</span>
+        </div>
+        <span class="brand-tag">Admin Panel</span>
+      </div>
+
+      <span class="nav-section-label">Overview</span>
+      <a class="nav-item active" onclick="showSection('overview',this)">
+        <span class="nav-item-icon">📊</span> Dashboard
+      </a>
+      <a class="nav-item" onclick="showSection('rooms',this)">
+        <span class="nav-item-icon">💬</span> Rooms
+      </a>
+      <a class="nav-item" onclick="showSection('files',this)">
+        <span class="nav-item-icon">📁</span> Files
+      </a>
+
+      <span class="nav-section-label">Analytics</span>
+      <a class="nav-item" onclick="showSection('analytics',this)">
+        <span class="nav-item-icon">📈</span> Charts
+      </a>
+      <a class="nav-item" onclick="showSection('daily',this)">
+        <span class="nav-item-icon">📅</span> Daily Report
+      </a>
+      <a class="nav-item" onclick="showSection('modlogs',this)">
+        <span class="nav-item-icon">🔍</span> Audit Logs
+      </a>
+
+      <div class="nav-spacer"></div>
+
+      <div class="nav-footer">
+        <div class="admin-info">
+          <strong id="navAdminName">Admin</strong>
+          <span id="navAdminRole">moderator</span>
+        </div>
+        <button onclick="adminLogout()" class="btn btn-danger" style="width:100%;padding:9px;font-size:13px;">🚪 Logout</button>
+      </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="admin-header">
+      <h1 id="sectionTitle">Dashboard Overview</h1>
+      <div class="admin-header-right">
+        <span id="lastRefreshed" style="font-size:12px;color:var(--text-muted);"></span>
+        <button class="refresh-btn" onclick="refreshCurrentSection()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="admin-main">
+
+      <!-- ── OVERVIEW SECTION ── -->
+      <section id="section-overview" class="admin-section active">
+        <div class="stats-grid" id="statsGrid">
+          <!-- Injected by JS -->
+          <div class="stat-card cyan" style="display:flex;align-items:center;justify-content:center;min-height:120px;">
+            <div class="spinner" style="border-top-color:var(--accent-cyan);width:28px;height:28px;border-width:3px;"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Active Rooms Quick List -->
+          <div class="admin-table-card">
+            <div class="table-header">
+              <h3>🟢 Active Rooms</h3>
+              <button class="btn-ghost btn" onclick="showSection('rooms', document.querySelector('.nav-item:nth-child(3)'))">View All</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Code</th><th>Name</th><th>Users</th><th>Expires</th></tr></thead>
+                <tbody id="activeRoomsTable"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Files -->
+          <div class="admin-table-card">
+            <div class="table-header">
+              <h3>📁 Recent Files</h3>
+              <button class="btn-ghost btn" onclick="showSection('files', document.querySelector('.nav-item:nth-child(4)'))">View All</button>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>File</th><th>Room</th><th>Size</th><th>When</th></tr></thead>
+                <tbody id="recentFilesTable"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ROOMS SECTION ── -->
+      <section id="section-rooms" class="admin-section">
+        <div class="admin-table-card">
+          <div class="table-header">
+            <h3>All Rooms</h3>
+            <div class="table-header-actions">
+              <select class="filter-select" id="roomFilter" onchange="loadRooms()">
+                <option value="all">All Rooms</option>
+                <option value="active">Active Only</option>
+                <option value="expired">Expired</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th><th>Name</th><th>Creator</th><th>Password</th>
+                  <th>Participants</th><th>Status</th><th>Expires</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="roomsTable"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FILES SECTION ── -->
+      <section id="section-files" class="admin-section">
+        <div class="admin-table-card">
+          <div class="table-header"><h3>Uploaded Files</h3></div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr><th>Filename</th><th>Type</th><th>Room</th><th>Uploader</th><th>Size</th><th>Downloads</th><th>Uploaded</th></tr>
+              </thead>
+              <tbody id="filesTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ANALYTICS SECTION ── -->
+      <section id="section-analytics" class="admin-section">
+        <div class="chart-card">
+          <h3>📈 Monthly Activity (Last 12 Months)</h3>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--gradient-main);background:var(--accent-cyan);"></div>Users Joined</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--accent-violet);"></div>Rooms Created</div>
+          </div>
+          <div class="chart-placeholder" id="monthlyChart">
+            <div style="width:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;">Loading chart…</div>
+          </div>
+        </div>
+
+        <div class="admin-table-card">
+          <div class="table-header"><h3>Monthly Summary Table</h3></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Month</th><th>Users Joined</th><th>Rooms Created</th></tr></thead>
+              <tbody id="monthlyTable"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── DAILY SECTION ── -->
+      <section id="section-daily" class="admin-section">
+        <div class="admin-table-card">
+          <div class="table-header"><h3>📅 Daily Activity — Last 30 Days</h3></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Date</th><th>Users Joined</th><th>Rooms Created</th></tr></thead>
+              <tbody id="dailyTable"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── MODERATION LOGS ── -->
+      <section id="section-modlogs" class="admin-section">
+        <div class="admin-table-card">
+          <div class="table-header">
+            <h3>🔍 Moderation Audit Log</h3>
+            <span style="font-size:12px;color:var(--text-muted);">All admin actions are recorded here for transparency.</span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Admin</th><th>Action</th><th>Target</th><th>Reason</th><th>When</th></tr></thead>
+              <tbody id="modlogsTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    // Auth guard
+    const token = localStorage.getItem('adminToken');
+    if (!token) window.location.href = 'admin-login.html';
+
+    document.getElementById('navAdminName').textContent = localStorage.getItem('adminUsername') || 'Admin';
+    document.getElementById('navAdminRole').textContent = localStorage.getItem('adminRole') || 'moderator';
+
+    let currentSection = 'overview';
+
+    function showSection(name, navEl) {
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`section-${name}`).classList.add('active');
+      if (navEl) navEl.classList.add('active');
+      currentSection = name;
+
+      const titles = {
+        overview: 'Dashboard Overview', rooms: 'Room Management',
+        files: 'File Management', analytics: 'Analytics Charts',
+        daily: 'Daily Report', modlogs: 'Moderation Audit Log'
+      };
+      document.getElementById('sectionTitle').textContent = titles[name] || name;
+      loadSection(name);
+    }
+
+    function refreshCurrentSection() { loadSection(currentSection); }
+
+    function loadSection(name) {
+      document.getElementById('lastRefreshed').textContent = 'Updated ' + new Date().toLocaleTimeString();
+      if (name === 'overview') { loadStats(); loadActiveRooms(); loadRecentFiles(); }
+      else if (name === 'rooms') loadRooms();
+      else if (name === 'files') loadFiles();
+      else if (name === 'analytics') loadMonthly();
+      else if (name === 'daily') loadDaily();
+      else if (name === 'modlogs') loadModLogs();
+    }
+
+    // Load on start
+    loadStats();
+    loadActiveRooms();
+    loadRecentFiles();
+
+    // ── Stats ──
+    async function loadStats() {
+      try {
+        const s = await apiCall('/api/admin/stats');
+        document.getElementById('statsGrid').innerHTML = `
+          <div class="stat-card cyan"><span class="stat-icon">👥</span><div class="stat-value">${s.today_users}</div><div class="stat-label">Users Today</div></div>
+          <div class="stat-card violet"><span class="stat-icon">📅</span><div class="stat-value">${s.monthly_users}</div><div class="stat-label">Users This Month</div></div>
+          <div class="stat-card emerald"><span class="stat-icon">🟢</span><div class="stat-value">${s.active_users}</div><div class="stat-label">Active Now</div></div>
+          <div class="stat-card rose"><span class="stat-icon">💬</span><div class="stat-value">${s.today_rooms}</div><div class="stat-label">Rooms Today</div></div>
+          <div class="stat-card amber"><span class="stat-icon">🌐</span><div class="stat-value">${s.active_rooms}</div><div class="stat-label">Active Rooms</div></div>
+          <div class="stat-card cyan"><span class="stat-icon">📁</span><div class="stat-value">${s.today_files}</div><div class="stat-label">Files Today</div></div>
+          <div class="stat-card violet"><span class="stat-icon">📦</span><div class="stat-value">${s.monthly_files}</div><div class="stat-label">Files This Month</div></div>
+          <div class="stat-card emerald"><span class="stat-icon">🗂</span><div class="stat-value">${s.total_rooms}</div><div class="stat-label">Total Rooms</div></div>
+        `;
+      } catch(e) { showToast('Failed to load stats: ' + e.message, 'error'); }
+    }
+
+    // ── Active Rooms Quick List ──
+    async function loadActiveRooms() {
+      try {
+        const data = await apiCall('/api/admin/rooms?filter=active&limit=5');
+        const tbody = document.getElementById('activeRoomsTable');
+        if (!data.rooms.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">No active rooms</td></tr>'; return; }
+        tbody.innerHTML = data.rooms.map(r => `
+          <tr>
+            <td class="room-code-cell">${r.room_code}</td>
+            <td>${esc(r.room_name)}</td>
+            <td><span class="badge badge-green">${r.online_count || 0} online</span></td>
+            <td style="font-size:12px;color:var(--text-muted);">${fmtDate(r.expires_at)}</td>
+          </tr>`).join('');
+      } catch(e) {}
+    }
+
+    // ── Recent Files ──
+    async function loadRecentFiles() {
+      try {
+        const files = await apiCall('/api/admin/files');
+        const tbody = document.getElementById('recentFilesTable');
+        const recent = files.slice(0, 5);
+        if (!recent.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">No files yet</td></tr>'; return; }
+        tbody.innerHTML = recent.map(f => `
+          <tr>
+            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.original_name)}</td>
+            <td class="room-code-cell" style="font-size:12px;">${f.room_code}</td>
+            <td style="font-size:12px;">${fmtSize(f.file_size)}</td>
+            <td style="font-size:12px;color:var(--text-muted);">${fmtDate(f.uploaded_at)}</td>
+          </tr>`).join('');
+      } catch(e) {}
+    }
+
+    // ── All Rooms ──
+    async function loadRooms() {
+      const filter = document.getElementById('roomFilter')?.value || 'all';
+      try {
+        const data = await apiCall(`/api/admin/rooms?filter=${filter}&limit=50`);
+        const tbody = document.getElementById('roomsTable');
+        if (!data.rooms.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">No rooms found</td></tr>'; return; }
+        tbody.innerHTML = data.rooms.map(r => {
+          const isActive = r.is_active && !r.is_disabled && new Date(r.expires_at) > new Date();
+          const statusDot = r.is_disabled ? `<span class="status-dot"><span class="dot red"></span>Disabled</span>`
+            : isActive ? `<span class="status-dot"><span class="dot green"></span>Active</span>`
+            : `<span class="status-dot"><span class="dot gray"></span>Expired</span>`;
+          return `<tr>
+            <td class="room-code-cell">${r.room_code}</td>
+            <td>${esc(r.room_name)}</td>
+            <td style="font-size:12px;">${esc(r.created_by || '—')}</td>
+            <td>${r.is_password_protected ? '<span class="badge badge-amber">🔐 Yes</span>' : '<span style="color:var(--text-muted);font-size:12px;">No</span>'}</td>
+            <td><span class="badge badge-cyan">${r.total_participants || 0}</span></td>
+            <td>${statusDot}</td>
+            <td style="font-size:12px;color:var(--text-muted);">${fmtDate(r.expires_at)}</td>
+            <td>
+              ${r.is_disabled
+                ? `<button class="btn btn-ghost" style="padding:5px 10px;font-size:11px;" onclick="enableRoom('${r.room_code}')">✅ Enable</button>`
+                : `<button class="btn btn-danger" onclick="disableRoom('${r.room_code}')">🚫 Disable</button>`}
+            </td>
+          </tr>`;
+        }).join('');
+      } catch(e) { showToast('Failed to load rooms', 'error'); }
+    }
+
+    async function disableRoom(code) {
+      const reason = prompt(`Reason for disabling room ${code}:`);
+      if (reason === null) return;
+      try {
+        await apiCall(`/api/admin/rooms/${code}/disable`, { method: 'POST', body: JSON.stringify({ reason }) });
+        showToast('Room disabled.', 'success');
+        loadRooms();
+      } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+    }
+
+    async function enableRoom(code) {
+      try {
+        await apiCall(`/api/admin/rooms/${code}/enable`, { method: 'POST' });
+        showToast('Room enabled.', 'success');
+        loadRooms();
+      } catch(e) { showToast('Failed: ' + e.message, 'error'); }
+    }
+
+    // ── Files ──
+    async function loadFiles() {
+      try {
+        const files = await apiCall('/api/admin/files');
+        const tbody = document.getElementById('filesTable');
+        if (!files.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">No files uploaded</td></tr>'; return; }
+        tbody.innerHTML = files.map(f => `<tr>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.original_name)}</td>
+          <td><span class="badge badge-violet">${f.file_type}</span></td>
+          <td class="room-code-cell" style="font-size:12px;">${f.room_code}</td>
+          <td style="font-size:12px;">${esc(f.uploader_username)}</td>
+          <td style="font-size:12px;">${fmtSize(f.file_size)}</td>
+          <td><span class="badge badge-cyan">${f.download_count}</span></td>
+          <td style="font-size:12px;color:var(--text-muted);">${fmtDate(f.uploaded_at)}</td>
+        </tr>`).join('');
+      } catch(e) { showToast('Failed to load files', 'error'); }
+    }
+
+    // ── Monthly Analytics ──
+    async function loadMonthly() {
+      try {
+        const rows = await apiCall('/api/admin/analytics/monthly');
+        // Table
+        document.getElementById('monthlyTable').innerHTML = rows.length
+          ? rows.map(r => `<tr><td>${r.label}</td><td><span class="badge badge-cyan">${r.users}</span></td><td><span class="badge badge-violet">${r.rooms}</span></td></tr>`).join('')
+          : '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">No data</td></tr>';
+
+        // Bar chart
+        const chart = document.getElementById('monthlyChart');
+        const max = Math.max(...rows.map(r => Math.max(Number(r.users), Number(r.rooms))), 1);
+        const reversed = [...rows].reverse();
+        chart.innerHTML = reversed.map(r => {
+          const uh = Math.round((Number(r.users) / max) * 160);
+          const rh = Math.round((Number(r.rooms) / max) * 160);
+          return `<div class="chart-bar-group">
+            <div class="chart-bar users-bar" style="height:${uh}px;" data-value="${r.users} users"></div>
+            <div class="chart-bar rooms-bar" style="height:${rh}px;" data-value="${r.rooms} rooms"></div>
+            <div class="chart-label">${r.label.split(' ')[0]}</div>
+          </div>`;
+        }).join('');
+      } catch(e) { showToast('Failed to load analytics', 'error'); }
+    }
+
+    // ── Daily ──
+    async function loadDaily() {
+      try {
+        const rows = await apiCall('/api/admin/analytics/daily');
+        document.getElementById('dailyTable').innerHTML = rows.length
+          ? rows.map(r => `<tr><td>${r.date}</td><td><span class="badge badge-cyan">${r.users}</span></td><td><span class="badge badge-violet">${r.rooms}</span></td></tr>`).join('')
+          : '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">No data</td></tr>';
+      } catch(e) { showToast('Failed to load daily data', 'error'); }
+    }
+
+    // ── Moderation Logs ──
+    async function loadModLogs() {
+      try {
+        const logs = await apiCall('/api/admin/moderation-logs');
+        document.getElementById('modlogsTable').innerHTML = logs.length
+          ? logs.map(l => `<tr>
+              <td style="font-size:12px;font-weight:600;">${esc(l.admin_username)}</td>
+              <td><span class="badge badge-amber">${l.action_type}</span></td>
+              <td style="font-size:12px;">${esc(l.target_id || '—')}</td>
+              <td style="font-size:12px;color:var(--text-secondary);">${esc(l.reason || '—')}</td>
+              <td style="font-size:12px;color:var(--text-muted);">${fmtDate(l.created_at)}</td>
+            </tr>`).join('')
+          : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">No actions recorded yet</td></tr>';
+      } catch(e) { showToast('Failed to load logs', 'error'); }
+    }
+
+    // ── Helpers ──
+    function esc(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(String(s||''))); return d.innerHTML; }
+    function fmtSize(b) { b=Number(b)||0; if(b<1024) return b+'B'; if(b<1048576) return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; }
+    function fmtDate(s) { if(!s) return '—'; return new Date(s).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+    function adminLogout() {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUsername');
+      localStorage.removeItem('adminRole');
+      window.location.href = 'admin-login.html';
+    }
+  </script>
+</body>
+</html>

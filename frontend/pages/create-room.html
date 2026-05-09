@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Room · Ephemeral</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="page">
+    <div class="card" id="formCard">
+      <div class="brand">
+        <a href="../index.html" style="text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <div class="brand-icon">🔒</div>
+          <span class="brand-name">Ephemeral</span>
+        </a>
+      </div>
+
+      <h1 class="page-title">Create a <span>Room</span></h1>
+      <p class="page-subtitle">Your private space. Share the code with anyone you want to invite.</p>
+
+      <div class="form-group">
+        <label class="form-label">Room Name <span style="color:var(--text-muted)">(optional)</span></label>
+        <div class="input-wrapper">
+          <span class="input-icon">💬</span>
+          <input type="text" id="roomName" class="form-input" placeholder="e.g. Team Sync, Project X..." maxlength="50">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <span style="display:flex;align-items:center;justify-content:space-between;">
+            Password <span style="color:var(--text-muted)">(optional)</span>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;">
+              <input type="checkbox" id="usePassword" style="accent-color:var(--accent-cyan);">
+              <span style="font-size:11px;color:var(--text-secondary);">Enable</span>
+            </label>
+          </span>
+        </label>
+        <div class="input-wrapper" id="passwordWrapper" style="opacity:0.4;pointer-events:none;">
+          <span class="input-icon">🔑</span>
+          <input type="password" id="roomPassword" class="form-input" placeholder="Set a room password..." maxlength="50">
+          <button type="button" class="toggle-password" onclick="togglePwd('roomPassword', this)">👁️</button>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="error-text" style="display:none;margin-bottom:16px;"></div>
+
+      <button onclick="createRoom()" class="btn btn-primary" id="createBtn">
+        ✨ Create Room
+      </button>
+
+      <div class="divider">or</div>
+
+      <a href="join-room.html" class="btn btn-secondary" onclick="saveSession('ephemeral_intent','join')">
+        🔗 Join Existing Room
+      </a>
+    </div>
+
+    <!-- Success card (hidden initially) -->
+    <div class="card" id="successCard" style="display:none;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+        <h2 style="font-family:var(--font-display);font-size:24px;font-weight:800;margin-bottom:6px;">Room Created!</h2>
+        <p style="color:var(--text-secondary);font-size:14px;">Share this code with people you want to invite.</p>
+      </div>
+
+      <div class="room-code-display" onclick="copyCode()" id="roomCodeDisplay">
+        <div class="code-label">Your Room Code</div>
+        <div class="code-value" id="codeValue">--------</div>
+        <div class="code-hint">Click to copy</div>
+      </div>
+
+      <div style="background:var(--bg-glass-light);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;margin-bottom:24px;">
+        <div class="room-info-item">
+          <span class="label">Room Name</span>
+          <span class="value" id="successRoomName">—</span>
+        </div>
+        <div class="room-info-item">
+          <span class="label">Password</span>
+          <span class="value" id="successPassword">None</span>
+        </div>
+        <div class="room-info-item">
+          <span class="label">Expires</span>
+          <span class="value" id="successExpiry">—</span>
+        </div>
+      </div>
+
+      <button onclick="enterRoom()" class="btn btn-primary">
+        🚀 Enter Room
+      </button>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    // Check username
+    let username = getSession('ephemeral_username');
+    if (!username) {
+      saveSession('ephemeral_intent', 'create');
+      window.location.href = 'username.html';
+    }
+
+    document.getElementById('usePassword').addEventListener('change', (e) => {
+      const wrap = document.getElementById('passwordWrapper');
+      wrap.style.opacity = e.target.checked ? '1' : '0.4';
+      wrap.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+      if (!e.target.checked) document.getElementById('roomPassword').value = '';
+    });
+
+    function togglePwd(id, btn) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+      btn.textContent = el.type === 'password' ? '👁️' : '🙈';
+    }
+
+    async function createRoom() {
+      const btn = document.getElementById('createBtn');
+      const errorMsg = document.getElementById('errorMsg');
+      const roomName = document.getElementById('roomName').value.trim();
+      const usePassword = document.getElementById('usePassword').checked;
+      const password = usePassword ? document.getElementById('roomPassword').value.trim() : '';
+
+      if (usePassword && !password) {
+        errorMsg.style.display = 'flex';
+        errorMsg.textContent = '⚠ Please enter a password or disable the password option.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Creating...';
+      errorMsg.style.display = 'none';
+
+      try {
+        const data = await apiCall('/api/rooms/create', {
+          method: 'POST',
+          body: JSON.stringify({ username, room_name: roomName, password })
+        });
+
+        // Save to session
+        saveSession('ephemeral_room', {
+          room_code: data.room_code,
+          room_name: data.room_name,
+          password: password || null
+        });
+
+        // Show success
+        document.getElementById('formCard').style.display = 'none';
+        document.getElementById('successCard').style.display = 'block';
+        document.getElementById('codeValue').textContent = data.room_code;
+        document.getElementById('successRoomName').textContent = data.room_name;
+        document.getElementById('successPassword').textContent = usePassword ? '🔐 Enabled' : 'None';
+        document.getElementById('successExpiry').textContent = new Date(data.expires_at).toLocaleString();
+
+      } catch (err) {
+        errorMsg.style.display = 'flex';
+        errorMsg.textContent = '⚠ ' + (err.message || 'Failed to create room.');
+        btn.disabled = false;
+        btn.innerHTML = '✨ Create Room';
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('codeValue').textContent;
+      navigator.clipboard.writeText(code).then(() => showToast('Room code copied!', 'success'));
+    }
+
+    function enterRoom() {
+      window.location.href = 'chat.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ephemeral — Private Encrypted Chat</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Landing-specific */
+    .landing-page {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-bar {
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(5,5,8,0.7);
+    }
+
+    .hero {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 32px;
+      animation: fadeUp 0.5s 0.1s both;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(48px, 7vw, 90px);
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      animation: fadeUp 0.5s 0.2s both;
+    }
+
+    .hero-title .line2 {
+      background: var(--gradient-main);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-secondary);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+      animation: fadeUp 0.5s 0.3s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.5s 0.4s both;
+    }
+
+    .hero-actions .btn {
+      width: auto;
+      padding: 15px 32px;
+      font-size: 15px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Features */
+    .features {
+      padding: 80px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .features-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: var(--transition);
+    }
+
+    .feature-card:hover {
+      border-color: rgba(0,229,255,0.2);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .feature-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* Privacy Notice */
+    .privacy-notice {
+      border-top: 1px solid var(--border-subtle);
+      padding: 40px 48px;
+      background: rgba(255,255,255,0.01);
+      text-align: center;
+    }
+
+    .privacy-notice h4 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--accent-amber);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .privacy-notice p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 0 auto 8px;
+      line-height: 1.7;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .nav-bar, .features, .privacy-notice, .footer { padding: 16px 24px; }
+      .hero { padding: 60px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+  </div>
+
+  <div class="landing-page">
+    <!-- Nav -->
+    <nav class="nav-bar">
+      <div class="brand">
+        <div class="brand-icon">🔒</div>
+        <span class="brand-name">Ephemeral</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <a href="pages/admin-login.html" class="btn-ghost btn" style="width:auto;padding:8px 18px;font-size:13px;">Admin</a>
+        <a href="pages/username.html" class="btn btn-primary" style="width:auto;padding:10px 24px;font-size:14px;">Get Started →</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">
+        <span>🔐</span> Zero-knowledge · Ephemeral · Private
+      </div>
+      <h1 class="hero-title">
+        Chat Without<br>
+        <span class="line2">Leaving Traces</span>
+      </h1>
+      <p class="hero-desc">
+        Create a private room in seconds. Share files securely. Rooms auto-expire.
+        No accounts, no logs by default. Just conversations that disappear.
+      </p>
+      <div class="hero-actions">
+        <a href="pages/create-room.html" class="btn btn-primary">
+          ✨ Create a Room
+        </a>
+        <a href="pages/join-room.html" class="btn btn-secondary">
+          🔗 Join with Code
+        </a>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+      <h2 class="features-title">Built for <span style="background:var(--gradient-main);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Privacy First</span></h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Instant Rooms</h3>
+          <p>Create a private chat room instantly with a unique code. No registration, no email required.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔐</span>
+          <h3>Password Protected</h3>
+          <p>Lock your room with an optional password. Only people with both the code and password can join.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📁</span>
+          <h3>Secure File Sharing</h3>
+          <p>Share images, documents, and archives directly inside your room. Files expire with the room.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⏳</span>
+          <h3>Auto-Expiry</h3>
+          <p>Rooms automatically expire after inactivity. No digital footprint left behind.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🌐</span>
+          <h3>Real-Time</h3>
+          <p>Powered by Socket.IO for instant message delivery with typing indicators and presence.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3>No Tracking</h3>
+          <p>No persistent accounts. Sessions are ephemeral. Chats are not retained by default.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy Notice -->
+    <div class="privacy-notice">
+      <h4>⚠️ Transparency & Moderation Policy</h4>
+      <p>By default, <strong>chat messages are NOT stored</strong> on our servers. This is a privacy-first application.</p>
+      <p>If moderation mode is enabled by the server operator, a notice will be shown and chat logs may be retained for safety review. Admins can disable abusive rooms and view file metadata. All admin actions are logged in the moderation audit trail.</p>
+      <p style="margin-top:8px;"><a href="#" class="link" style="font-size:13px;">View Full Privacy Policy</a></p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>© 2025 Ephemeral Chat</span>
+      <span>Built with Node.js + Socket.IO + MySQL</span>
+    </footer>
+  </div>
+</body>
+</html>

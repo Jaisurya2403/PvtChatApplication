@@ -1,0 +1,40 @@
+# render.yaml
+# Render.com deployment configuration for the backend
+
+services:
+  - type: web
+    name: ephemeral-chat-backend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://your-frontend.vercel.app   # ← update this
+      - key: DB_HOST
+        sync: false   # set manually in Render dashboard
+      - key: DB_PORT
+        value: 3306
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: ephemeral_chat
+      - key: UPLOAD_DIR
+        value: ./uploads
+      - key: MAX_FILE_SIZE_MB
+        value: 25
+      - key: ROOM_EXPIRY_HOURS
+        value: 24
+      - key: RETAIN_CHAT_LOGS
+        value: false

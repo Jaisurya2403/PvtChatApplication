@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Choose Username · Ephemeral</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="page">
+    <div class="card">
+      <div class="brand">
+        <a href="../index.html" class="brand" style="text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <div class="brand-icon">🔒</div>
+          <span class="brand-name">Ephemeral</span>
+        </a>
+      </div>
+
+      <h1 class="page-title">Who are <span>you?</span></h1>
+      <p class="page-subtitle">Pick a display name for this session. No account needed — it's temporary.</p>
+
+      <div class="form-group">
+        <label class="form-label">Your Display Name</label>
+        <div class="input-wrapper">
+          <span class="input-icon">👤</span>
+          <input type="text" id="usernameInput" class="form-input" placeholder="e.g. CrypticFox, Agent42..." maxlength="30" autofocus autocomplete="off">
+        </div>
+        <div id="usernameError" class="error-text" style="display:none;"></div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <p class="form-label" style="margin-bottom:10px;">Quick Picks</p>
+        <div id="suggestions" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
+      <button onclick="proceed()" class="btn btn-primary" id="continueBtn">
+        Continue →
+      </button>
+
+      <p class="text-muted text-center" style="margin-top:20px;font-size:13px;">
+        Your name is only used within the room. Nothing is stored permanently.
+      </p>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    const adjectives = ['Silent','Hidden','Cyber','Shadow','Ghost','Swift','Neon','Dark','Echo','Void','Mystic','Phantom'];
+    const nouns = ['Fox','Wolf','Hawk','Raven','Lynx','Cobra','Panther','Falcon','Sphinx','Cipher','Nova','Pulse'];
+
+    function randomName() {
+      const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const n = nouns[Math.floor(Math.random() * nouns.length)];
+      return a + n + Math.floor(Math.random() * 100);
+    }
+
+    // Generate suggestions
+    const suggestionsEl = document.getElementById('suggestions');
+    for (let i = 0; i < 6; i++) {
+      const name = randomName();
+      const chip = document.createElement('button');
+      chip.textContent = name;
+      chip.style.cssText = `background:var(--bg-glass-light);border:1px solid var(--border-subtle);border-radius:100px;padding:5px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;font-family:var(--font-body);transition:var(--transition);`;
+      chip.onmouseenter = () => { chip.style.color = 'var(--text-primary)'; chip.style.borderColor = 'rgba(0,229,255,0.2)'; };
+      chip.onmouseleave = () => { chip.style.color = 'var(--text-secondary)'; chip.style.borderColor = 'var(--border-subtle)'; };
+      chip.onclick = () => { document.getElementById('usernameInput').value = name; validateInput(); };
+      suggestionsEl.appendChild(chip);
+    }
+
+    function validateInput() {
+      const val = document.getElementById('usernameInput').value.trim();
+      const err = document.getElementById('usernameError');
+      if (val.length < 2) {
+        err.style.display = 'flex';
+        err.textContent = '⚠ Name must be at least 2 characters.';
+        return false;
+      }
+      if (!/^[a-zA-Z0-9_\-\.]+$/.test(val)) {
+        err.style.display = 'flex';
+        err.textContent = '⚠ Only letters, numbers, _ - . allowed.';
+        return false;
+      }
+      err.style.display = 'none';
+      return true;
+    }
+
+    document.getElementById('usernameInput').addEventListener('input', validateInput);
+
+    document.getElementById('usernameInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') proceed();
+    });
+
+    function proceed() {
+      if (!validateInput()) return;
+      const username = document.getElementById('usernameInput').value.trim();
+      saveSession('ephemeral_username', username);
+
+      // Redirect to previous intent or default
+      const intent = getSession('ephemeral_intent') || 'create';
+      if (intent === 'join') {
+        window.location.href = 'join-room.html';
+      } else {
+        window.location.href = 'create-room.html';
+      }
+    }
+
+    // Pre-fill if session exists
+    const existing = getSession('ephemeral_username');
+    if (existing) document.getElementById('usernameInput').value = existing;
+  </script>
+</body>
+</html>

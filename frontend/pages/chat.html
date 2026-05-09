@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat · Ephemeral</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/chat.css">
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- File Drop Overlay -->
+  <div class="file-drop-overlay" id="dropOverlay">
+    <div class="file-drop-box">
+      <div class="drop-icon">📂</div>
+      <h3>Drop to Share</h3>
+      <p>Release to upload your file to this room</p>
+    </div>
+  </div>
+
+  <input type="file" id="fileInput" style="display:none" accept="image/*,.pdf,.txt,.zip,.mp4,.mp3,.wav">
+
+  <div class="chat-page" id="chatPage">
+    <!-- Header -->
+    <header class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-header-icon">💬</div>
+        <div class="chat-header-info">
+          <h2 id="headerRoomName">Loading...</h2>
+          <div class="room-meta">
+            <span class="live-dot"></span>
+            <span id="headerOnlineCount">0 online</span>
+            <span>·</span>
+            <span id="headerRoomCode" style="font-family:var(--font-display);letter-spacing:0.05em;color:var(--accent-cyan);"></span>
+            <span>·</span>
+            <span class="expiry-timer" id="expiryTimer">⏳ —</span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-header-right">
+        <button class="header-btn" onclick="copyRoomCode()">📋 Copy Code</button>
+        <button class="header-btn" onclick="toggleSidebar()">👥 Panel</button>
+        <button class="header-btn danger" onclick="leaveRoom()">🚪 Leave</button>
+      </div>
+    </header>
+
+    <!-- Main Chat -->
+    <main class="chat-main">
+      <div class="messages-area" id="messagesArea">
+        <div class="messages-welcome" id="welcomeMsg">
+          <span class="welcome-icon">🔒</span>
+          <h3>Secure Room Active</h3>
+          <p>Messages here are ephemeral by default.<br>They vanish when the room expires. Stay safe.</p>
+        </div>
+      </div>
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dots" id="typingDots" style="display:none;">
+          <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        </div>
+        <span id="typingText"></span>
+      </div>
+      <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+          <textarea id="chatInput" class="chat-input" placeholder="Type a message… (Enter to send)" rows="1" maxlength="2000"></textarea>
+          <div class="input-actions">
+            <button class="input-action-btn" onclick="triggerFileUpload()" title="Share file">📎</button>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="chat-sidebar" id="chatSidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" onclick="switchTab('users',this)">👥 Users</button>
+        <button class="sidebar-tab" onclick="switchTab('files',this)">📁 Files</button>
+        <button class="sidebar-tab" onclick="switchTab('info',this)">ℹ Info</button>
+      </div>
+      <div id="tab-users" class="tab-content" style="padding:20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;">
+        <div class="sidebar-title">Online Now <span id="onlineCountBadge">0</span></div>
+        <div id="usersList"></div>
+      </div>
+      <div id="tab-files" class="tab-content" style="display:none;padding:20px;overflow-y:auto;flex:1;flex-direction:column;">
+        <div class="sidebar-title">Shared Files</div>
+        <div id="filesList"><p style="font-size:13px;color:var(--text-muted);">No files shared yet.</p></div>
+      </div>
+      <div id="tab-info" class="tab-content" style="display:none;padding:20px;flex:1;flex-direction:column;">
+        <div class="sidebar-title">Room Info</div>
+        <div class="room-info-item"><span class="label">Room Code</span><span class="value" id="infoCode" style="font-family:var(--font-display);color:var(--accent-cyan);letter-spacing:0.08em;"></span></div>
+        <div class="room-info-item"><span class="label">Room Name</span><span class="value" id="infoName"></span></div>
+        <div class="room-info-item"><span class="label">Your Name</span><span class="value" id="infoUsername" style="color:var(--accent-emerald);"></span></div>
+        <div class="room-info-item"><span class="label">Password</span><span class="value" id="infoPassword"></span></div>
+        <div class="room-info-item"><span class="label">Expires</span><span class="value" id="infoExpiry" style="color:var(--accent-amber);font-size:12px;"></span></div>
+        <button class="copy-room-btn" onclick="copyRoomCode()">📋 Copy Room Code</button>
+        <div style="margin-top:16px;padding:14px;background:rgba(255,64,129,0.05);border:1px solid rgba(255,64,129,0.1);border-radius:var(--radius-md);font-size:12px;color:var(--text-secondary);line-height:1.7;">
+          <strong style="color:var(--accent-rose);display:block;margin-bottom:6px;">🛡 Privacy Notice</strong>
+          Chat messages are NOT stored on the server by default. Files auto-delete when the room expires.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    const username = getSession('ephemeral_username');
+    const roomData = getSession('ephemeral_room');
+    if (!username || !roomData) { window.location.href = 'username.html'; }
+
+    const { room_code, room_name } = roomData;
+    const SERVER_URL = window.EPHEMERAL_API_URL || 'http://localhost:3001';
+
+    let socket, typingTimeout, isTyping = false;
+    const typingUsers = new Set();
+    let sharedFiles = [];
+
+    // Init UI labels
+    document.getElementById('headerRoomName').textContent = room_name;
+    document.getElementById('headerRoomCode').textContent = room_code;
+    document.getElementById('infoCode').textContent = room_code;
+    document.getElementById('infoName').textContent = room_name;
+    document.getElementById('infoUsername').textContent = username;
+    document.getElementById('infoPassword').textContent = roomData.password ? '🔐 Protected' : 'None';
+
+    apiCall(`/api/rooms/${room_code}/info`).then(info => {
+      if (info.expires_at) {
+        document.getElementById('infoExpiry').textContent = new Date(info.expires_at).toLocaleString();
+        startExpiryTimer(new Date(info.expires_at));
+      }
+    }).catch(() => {});
+
+    loadFiles();
+
+    // Socket
+    socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    socket.on('connect', () => socket.emit('join_room', { room_code, username }));
+    socket.on('disconnect', () => appendSystem('⚠ Disconnected. Reconnecting...'));
+    socket.on('joined_room', ({ users }) => updateUsers(users));
+    socket.on('update_users', updateUsers);
+    socket.on('user_joined', ({ users }) => updateUsers(users));
+    socket.on('user_left', ({ users }) => updateUsers(users));
+    socket.on('system_message', ({ text }) => appendSystem(text));
+    socket.on('receive_message', appendMessage);
+    socket.on('file_received', (f) => { appendFileMsg(f); addFileSidebar(f); });
+    socket.on('user_typing', ({ username: u }) => { typingUsers.add(u); renderTyping(); });
+    socket.on('user_stop_typing', ({ username: u }) => { typingUsers.delete(u); renderTyping(); });
+
+    function esc(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+
+    function appendSystem(text) {
+      const area = document.getElementById('messagesArea');
+      const el = document.createElement('div');
+      el.className = 'message-system';
+      el.textContent = text;
+      area.appendChild(el);
+      scrollBot();
+    }
+
+    function appendMessage(msg) {
+      const area = document.getElementById('messagesArea');
+      document.getElementById('welcomeMsg')?.remove();
+      const self = msg.username === username;
+      const g = document.createElement('div');
+      g.className = `message-group ${self ? 'self' : 'other'}`;
+      g.innerHTML = `
+        <div class="message-avatar ${self ? 'self-avatar' : ''}">${msg.username[0].toUpperCase()}</div>
+        <div class="message-content-col">
+          <div class="message-meta">
+            <span class="message-username">${self ? 'You' : esc(msg.username)}</span>
+            <span class="message-time">${formatTime(msg.timestamp)}</span>
+          </div>
+          <div class="message-bubble">${esc(msg.message)}</div>
+        </div>`;
+      area.appendChild(g);
+      scrollBot();
+    }
+
+    function appendFileMsg(f) {
+      const area = document.getElementById('messagesArea');
+      document.getElementById('welcomeMsg')?.remove();
+      const self = f.username === username;
+      const g = document.createElement('div');
+      g.className = `message-group ${self ? 'self' : 'other'}`;
+      const icon = getFileIcon(f.file_type || 'other');
+      g.innerHTML = `
+        <div class="message-avatar ${self ? 'self-avatar' : ''}">${f.username[0].toUpperCase()}</div>
+        <div class="message-content-col">
+          <div class="message-meta">
+            <span class="message-username">${self ? 'You' : esc(f.username)}</span>
+            <span class="message-time">${formatTime(new Date())}</span>
+          </div>
+          <div class="file-bubble" onclick="window.open('${SERVER_URL}/api/files/download/${f.file_id}','_blank')">
+            <div class="file-icon-box ${f.file_type || 'other'}">${icon}</div>
+            <div class="file-info-text">
+              <div class="file-name">${esc(f.original_name)}</div>
+              <div class="file-size">${formatFileSize(f.file_size || 0)}</div>
+            </div>
+            <span class="file-download-btn">⬇</span>
+          </div>
+        </div>`;
+      area.appendChild(g);
+      scrollBot();
+    }
+
+    function scrollBot() {
+      const a = document.getElementById('messagesArea');
+      a.scrollTop = a.scrollHeight;
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      socket.emit('send_message', { room_code, username, message: msg });
+      input.value = '';
+      input.style.height = 'auto';
+      stopTyping();
+    }
+
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    document.getElementById('chatInput').addEventListener('input', e => {
+      autoResize(e.target);
+      if (!isTyping) { isTyping = true; socket.emit('typing', { room_code, username }); }
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(stopTyping, 2000);
+    });
+
+    function stopTyping() {
+      if (isTyping) { isTyping = false; socket.emit('stop_typing', { room_code, username }); }
+    }
+
+    function renderTyping() {
+      const others = [...typingUsers].filter(u => u !== username);
+      document.getElementById('typingDots').style.display = others.length ? 'flex' : 'none';
+      document.getElementById('typingText').textContent = others.length
+        ? (others.length === 1 ? `${others[0]} is typing…` : `${others.slice(0,2).join(', ')} are typing…`) : '';
+    }
+
+    function updateUsers(users) {
+      document.getElementById('headerOnlineCount').textContent = `${users.length} online`;
+      document.getElementById('onlineCountBadge').textContent = users.length;
+      const list = document.getElementById('usersList');
+      list.innerHTML = users.map(u => `
+        <div class="user-item">
+          <span class="user-dot"></span>
+          <span class="user-name">${esc(u)}</span>
+          ${u === username ? '<span class="user-you">You</span>' : ''}
+        </div>`).join('');
+    }
+
+    async function loadFiles() {
+      try {
+        sharedFiles = await apiCall(`/api/files/room/${room_code}`);
+        renderFilesSidebar();
+      } catch(e) {}
+    }
+
+    function renderFilesSidebar() {
+      const list = document.getElementById('filesList');
+      list.innerHTML = sharedFiles.length ? sharedFiles.map(f => `
+        <div class="file-item-small" onclick="window.open('${SERVER_URL}/api/files/download/${f.id}','_blank')">
+          <span class="file-item-icon">${getFileIcon(f.file_type)}</span>
+          <span class="file-item-name">${esc(f.original_name)}</span>
+          <span class="file-item-size">${formatFileSize(f.file_size)}</span>
+        </div>`).join('') : '<p style="font-size:13px;color:var(--text-muted);">No files shared yet.</p>';
+    }
+
+    function addFileSidebar(f) {
+      sharedFiles.unshift({ ...f, id: f.file_id });
+      renderFilesSidebar();
+    }
+
+    function triggerFileUpload() { document.getElementById('fileInput').click(); }
+
+    document.getElementById('fileInput').addEventListener('change', e => {
+      if (e.target.files[0]) uploadFile(e.target.files[0]);
+    });
+
+    async function uploadFile(file) {
+      if (file.size > 25 * 1024 * 1024) { showToast('File too large. Max 25MB.', 'error'); return; }
+      showToast(`Uploading ${file.name}…`, 'info');
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('room_code', room_code);
+      fd.append('username', username);
+      try {
+        const res = await fetch(`${SERVER_URL}/api/files/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        socket.emit('file_shared', { room_code, username, file_info: { file_id: data.file_id, original_name: data.original_name, file_size: data.file_size, file_type: data.file_type } });
+        appendFileMsg({ ...data, username, file_id: data.file_id });
+        addFileSidebar({ ...data, id: data.file_id });
+        showToast('File shared!', 'success');
+      } catch(err) { showToast('Upload failed: ' + err.message, 'error'); }
+      document.getElementById('fileInput').value = '';
+    }
+
+    document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropOverlay').classList.add('active'); });
+    document.getElementById('dropOverlay').addEventListener('dragleave', () => document.getElementById('dropOverlay').classList.remove('active'));
+    document.getElementById('dropOverlay').addEventListener('drop', e => {
+      e.preventDefault();
+      document.getElementById('dropOverlay').classList.remove('active');
+      if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+    });
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+      btn.classList.add('active');
+      const el = document.getElementById(`tab-${tab}`);
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+    }
+
+    function toggleSidebar() { document.getElementById('chatSidebar').classList.toggle('mobile-open'); }
+
+    function copyRoomCode() {
+      navigator.clipboard.writeText(room_code).then(() => showToast('Room code copied!', 'success'));
+    }
+
+    function leaveRoom() {
+      if (confirm('Leave this room?')) {
+        socket?.disconnect();
+        clearSession('ephemeral_room');
+        window.location.href = '../index.html';
+      }
+    }
+
+    function startExpiryTimer(exp) {
+      function tick() {
+        const diff = exp - new Date();
+        const el = document.getElementById('expiryTimer');
+        if (diff <= 0) { el.textContent = '⏳ Expired'; el.classList.add('critical'); return; }
+        const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000);
+        el.textContent = `⏳ ${h}h ${m}m`;
+        if (diff < 600000) el.classList.add('critical');
+      }
+      tick();
+      setInterval(tick, 60000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Room · Ephemeral</title>
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+  <div class="bg-canvas">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="page">
+    <div class="card">
+      <div class="brand">
+        <a href="../index.html" style="text-decoration:none;display:flex;align-items:center;gap:12px;">
+          <div class="brand-icon">🔒</div>
+          <span class="brand-name">Ephemeral</span>
+        </a>
+      </div>
+
+      <h1 class="page-title">Join a <span>Room</span></h1>
+      <p class="page-subtitle">Enter the room code shared with you. Provide a password if the room is protected.</p>
+
+      <div class="form-group">
+        <label class="form-label">Room Code</label>
+        <div class="input-wrapper">
+          <span class="input-icon">🔗</span>
+          <input type="text" id="roomCode" class="form-input" placeholder="e.g. AB12CD34" maxlength="10"
+            style="text-transform:uppercase;letter-spacing:0.1em;font-family:var(--font-display);font-size:18px;font-weight:700;"
+            autofocus autocomplete="off">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password <span style="color:var(--text-muted)">(if required)</span></label>
+        <div class="input-wrapper">
+          <span class="input-icon">🔑</span>
+          <input type="password" id="roomPassword" class="form-input" placeholder="Leave empty if no password...">
+          <button type="button" class="toggle-password" onclick="togglePwd()">👁️</button>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="error-text" style="display:none;margin-bottom:16px;"></div>
+
+      <button onclick="joinRoom()" class="btn btn-primary" id="joinBtn">
+        🔗 Join Room
+      </button>
+
+      <div class="divider">or</div>
+
+      <a href="create-room.html" class="btn btn-secondary" onclick="saveSession('ephemeral_intent','create')">
+        ✨ Create New Room
+      </a>
+
+      <p class="text-muted text-center" style="margin-top:20px;font-size:13px;">
+        Joining as <strong style="color:var(--accent-cyan);" id="usernameDisplay">...</strong> · 
+        <a href="username.html" class="link" style="font-size:13px;" onclick="saveSession('ephemeral_intent','join')">Change</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script>
+    let username = getSession('ephemeral_username');
+    if (!username) {
+      saveSession('ephemeral_intent', 'join');
+      window.location.href = 'username.html';
+    }
+    document.getElementById('usernameDisplay').textContent = username;
+
+    // Auto-uppercase room code
+    document.getElementById('roomCode').addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') joinRoom();
+    });
+
+    // Pre-fill from URL param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('code')) {
+      document.getElementById('roomCode').value = params.get('code').toUpperCase();
+    }
+
+    function togglePwd() {
+      const el = document.getElementById('roomPassword');
+      const btn = document.querySelector('.toggle-password');
+      el.type = el.type === 'password' ? 'text' : 'password';
+      btn.textContent = el.type === 'password' ? '👁️' : '🙈';
+    }
+
+    async function joinRoom() {
+      const btn = document.getElementById('joinBtn');
+      const errorMsg = document.getElementById('errorMsg');
+      const room_code = document.getElementById('roomCode').value.trim().toUpperCase();
+      const password = document.getElementById('roomPassword').value.trim();
+
+      if (room_code.length < 6) {
+        errorMsg.style.display = 'flex';
+        errorMsg.textContent = '⚠ Please enter a valid room code.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Joining...';
+      errorMsg.style.display = 'none';
+
+      try {
+        const data = await apiCall('/api/rooms/join', {
+          method: 'POST',
+          body: JSON.stringify({ username, room_code, password })
+        });
+
+        saveSession('ephemeral_room', {
+          room_code: data.room_code,
+          room_name: data.room_name,
+          password: password || null
+        });
+
+        showToast('Room joined!', 'success');
+        setTimeout(() => window.location.href = 'chat.html', 500);
+
+      } catch (err) {
+        errorMsg.style.display = 'flex';
+        errorMsg.textContent = '⚠ ' + (err.message || 'Failed to join room.');
+        btn.disabled = false;
+        btn.innerHTML = '🔗 Join Room';
+      }
+    }
+  </script>
+</body>
+</html>
