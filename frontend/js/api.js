@@ -1,7 +1,7 @@
 // frontend/js/api.js
 // API helper - centralized config and fetch wrapper
 
-const API_BASE = window.EPHEMERAL_API_URL || 'http://localhost:3001';
+const API_BASE = window.EPHEMERAL_API_URL || 'https://pvtchatapplication.onrender.com';
 
 async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;

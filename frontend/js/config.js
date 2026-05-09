@@ -14,7 +14,7 @@
     window.EPHEMERAL_API_URL = 'http://localhost:3001';
   } else {
     // ← REPLACE with your actual Render backend URL
-    window.EPHEMERAL_API_URL = 'https://YOUR-APP.onrender.com';
+    window.EPHEMERAL_API_URL = 'https://pvtchatapplication.onrender.com';
   }
   console.log('🌐 API URL:', window.EPHEMERAL_API_URL);
 })();
