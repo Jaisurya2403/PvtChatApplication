@@ -11,7 +11,7 @@
 // Auto-detect: use same origin for production, localhost for dev
 (function() {
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    window.EPHEMERAL_API_URL = 'http://localhost:3001';
+    window.EPHEMERAL_API_URL = 'https://pvtchatapplication.onrender.com';
   } else {
     // ← REPLACE with your actual Render backend URL
     window.EPHEMERAL_API_URL = 'https://pvtchatapplication.onrender.com';
